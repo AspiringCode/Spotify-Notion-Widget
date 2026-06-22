@@ -1,8 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { vi, describe, expect, it, afterEach } from "vitest";
 import {
   buildPlaybackQueue,
   buildPlaybackPlan,
   buildSpotifyAuthorizeUrl,
+  getSpotifyRecommendations,
   mapSpotifyTrack,
   requireSpotifyCredentials,
   requireSpotifyOAuthConfig
@@ -152,5 +153,71 @@ describe("buildPlaybackPlan", () => {
       startUri: "spotify:track:b",
       queueUris: ["spotify:track:c", "spotify:track:a"]
     });
+  });
+});
+
+describe("getSpotifyRecommendations", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("returns mapped tracks from the recommendations endpoint", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            tracks: [
+              {
+                id: "rec1",
+                name: "Recommended Track",
+                uri: "spotify:track:rec1",
+                external_urls: { spotify: "https://open.spotify.com/track/rec1" },
+                artists: [{ name: "Artist One" }],
+                album: { name: "Album One", images: [{ url: "https://img.example.com/1" }] }
+              }
+            ]
+          })
+      })
+    );
+
+    const tracks = await getSpotifyRecommendations("test-token", "seed-track-id", 10);
+
+    const fetchMock = vi.mocked(fetch);
+    expect(fetchMock).toHaveBeenCalledOnce();
+    const calledUrl = (fetchMock.mock.calls[0] as [string, RequestInit])[0];
+    expect(calledUrl).toContain("seed_tracks=seed-track-id");
+    expect(calledUrl).toContain("limit=10");
+    const calledInit = (fetchMock.mock.calls[0] as [string, RequestInit])[1];
+    expect(calledInit?.headers).toMatchObject({ Authorization: "Bearer test-token" });
+
+    expect(tracks).toHaveLength(1);
+    expect(tracks[0]).toMatchObject({
+      id: "rec1",
+      name: "Recommended Track",
+      artists: "Artist One",
+      uri: "spotify:track:rec1"
+    });
+  });
+
+  it("returns an empty array when the response contains no tracks", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({})
+      })
+    );
+
+    const tracks = await getSpotifyRecommendations("test-token", "seed-id");
+    expect(tracks).toEqual([]);
+  });
+
+  it("throws when the recommendations endpoint returns a non-OK status", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: false, status: 401 })
+    );
+
+    await expect(getSpotifyRecommendations("bad-token", "seed-id")).rejects.toThrow("401");
   });
 });

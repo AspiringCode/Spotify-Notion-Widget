@@ -340,3 +340,30 @@ export async function searchSpotifyTracks(query: string): Promise<Track[]> {
   const data = (await response.json()) as SpotifySearchResponse;
   return (data.tracks?.items ?? []).map(mapSpotifyTrack);
 }
+
+export async function getSpotifyRecommendations(
+  accessToken: string,
+  seedTrackId: string,
+  limit = 10
+): Promise<Track[]> {
+  const params = new URLSearchParams({
+    seed_tracks: seedTrackId,
+    limit: String(limit),
+    market: "US"
+  });
+
+  const response = await fetch(
+    `https://api.spotify.com/v1/recommendations?${params.toString()}`,
+    {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: "no-store"
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Spotify recommendations request failed with status ${response.status}`);
+  }
+
+  const data = (await response.json()) as { tracks?: SpotifyTrackItem[] };
+  return (data.tracks ?? []).map(mapSpotifyTrack);
+}
