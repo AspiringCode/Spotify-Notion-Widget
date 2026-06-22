@@ -7,13 +7,36 @@ const DEFAULT_COLOR = "34 197 94";
 
 type SearchState = "idle" | "loading" | "ready" | "empty" | "error";
 
+type AuthStatus = {
+  connected: boolean;
+  displayName?: string;
+  premium?: boolean;
+  product?: string;
+};
+
 export default function App() {
   const [query, setQuery] = useState("");
   const [tracks, setTracks] = useState<Track[]>([]);
   const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
   const [state, setState] = useState<SearchState>("idle");
   const [error, setError] = useState("");
+  const [authStatus, setAuthStatus] = useState<AuthStatus>({ connected: false });
+  const [playbackMessage, setPlaybackMessage] = useState("");
   const albumColor = useAlbumColor(selectedTrack?.image);
+
+  useEffect(() => {
+    void refreshAuthStatus();
+  }, []);
+
+  async function refreshAuthStatus() {
+    try {
+      const response = await fetch("/api/auth/status", { cache: "no-store" });
+      const data = (await response.json()) as AuthStatus;
+      setAuthStatus(data);
+    } catch {
+      setAuthStatus({ connected: false });
+    }
+  }
 
   async function runSearch(nextQuery = query) {
     const trimmedQuery = nextQuery.trim();
@@ -50,6 +73,46 @@ export default function App() {
     }
   }
 
+  async function playTrack(track: Track) {
+    setSelectedTrack(track);
+    setPlaybackMessage("");
+
+    if (!authStatus.connected) {
+      setPlaybackMessage("Connect Spotify to start a real queue. The embed is loaded below.");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/play", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          selectedTrackId: track.id,
+          tracks: tracks.map(({ id, uri }) => ({ id, uri }))
+        })
+      });
+      const data = (await response.json()) as { playing?: boolean; queued?: number; error?: string };
+
+      if (!response.ok) {
+        throw new Error(data.error ?? "Spotify playback could not be started.");
+      }
+
+      setPlaybackMessage(`Started on Spotify with ${data.queued ?? 1} track${data.queued === 1 ? "" : "s"} in order.`);
+    } catch (playbackError) {
+      setPlaybackMessage(
+        playbackError instanceof Error ? playbackError.message : "Spotify playback could not be started."
+      );
+    }
+  }
+
+  async function disconnectSpotify() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    setAuthStatus({ connected: false });
+    setPlaybackMessage("Spotify disconnected. The embed still works as a fallback.");
+  }
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     void runSearch();
@@ -71,6 +134,27 @@ export default function App() {
             <p className="eyebrow">Notion Spotify Embed</p>
             <h1>Find a track</h1>
           </div>
+        </div>
+
+        <div className="auth-row">
+          {authStatus.connected ? (
+            <>
+              <span>
+                Connected as <strong>{authStatus.displayName ?? "Spotify user"}</strong>
+                {authStatus.premium ? "" : " - Premium required for queue playback"}
+              </span>
+              <button className="secondary-button" type="button" onClick={disconnectSpotify}>
+                Disconnect
+              </button>
+            </>
+          ) : (
+            <>
+              <span>Connect Premium to start a real Spotify queue.</span>
+              <a className="secondary-button" href="/api/auth/login">
+                Connect Spotify
+              </a>
+            </>
+          )}
         </div>
 
         <form className="search-form" onSubmit={handleSubmit}>
@@ -109,7 +193,7 @@ export default function App() {
                   key={track.id}
                   track={track}
                   active={track.id === selectedTrack?.id}
-                  onSelect={() => setSelectedTrack(track)}
+                  onSelect={() => void playTrack(track)}
                 />
               ))
             : null}
@@ -131,6 +215,7 @@ export default function App() {
                 <p>{selectedTrack.artists}</p>
               </div>
             </div>
+            {playbackMessage ? <p className="playback-message">{playbackMessage}</p> : null}
             <iframe
               title={`${selectedTrack.name} by ${selectedTrack.artists}`}
               src={`https://open.spotify.com/embed/track/${selectedTrack.id}`}
