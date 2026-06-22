@@ -1,13 +1,10 @@
 import { NextResponse } from "next/server";
-import { addSpotifyTrackToQueue, buildPlaybackPlan, startSpotifyPlayback } from "@/lib/spotify";
+import { addSpotifyTrackToQueue, getSpotifyRecommendations, startSpotifyPlayback } from "@/lib/spotify";
 import { getSpotifyUserAccessToken } from "@/lib/spotify-session";
 
 type PlayRequest = {
   selectedTrackId?: string;
-  tracks?: Array<{
-    id: string;
-    uri: string;
-  }>;
+  selectedTrackUri?: string;
 };
 
 export async function POST(request: Request) {
@@ -19,29 +16,14 @@ export async function POST(request: Request) {
 
   const body = (await request.json()) as PlayRequest;
   const selectedTrackId = body.selectedTrackId?.trim();
-  const tracks = body.tracks ?? [];
+  const selectedTrackUri = body.selectedTrackUri?.trim();
 
-  if (!selectedTrackId || !tracks.length) {
+  if (!selectedTrackId || !selectedTrackUri) {
     return NextResponse.json({ error: "Select a track before starting playback." }, { status: 400 });
   }
 
-  const playbackPlan = buildPlaybackPlan(selectedTrackId, tracks);
-
-  if (!playbackPlan) {
-    return NextResponse.json({ error: "No playable Spotify track URIs were provided." }, { status: 400 });
-  }
-
   try {
-    await startSpotifyPlayback(accessToken, [playbackPlan.startUri]);
-
-    for (const uri of playbackPlan.queueUris) {
-      await addSpotifyTrackToQueue(accessToken, uri);
-    }
-
-    return NextResponse.json({
-      playing: true,
-      queued: playbackPlan.queueUris.length
-    });
+    await startSpotifyPlayback(accessToken, [selectedTrackUri]);
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
     const status = message.includes("403") ? 403 : message.includes("404") ? 404 : 502;
@@ -58,4 +40,17 @@ export async function POST(request: Request) {
       { status }
     );
   }
+
+  let queued = 0;
+  try {
+    const recommendations = await getSpotifyRecommendations(accessToken, selectedTrackId, 10);
+    for (const track of recommendations) {
+      await addSpotifyTrackToQueue(accessToken, track.uri);
+      queued++;
+    }
+  } catch {
+    // queue is best-effort; playback already started successfully
+  }
+
+  return NextResponse.json({ playing: true, queued });
 }
