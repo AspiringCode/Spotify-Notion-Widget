@@ -1,0 +1,101 @@
+<h2>Red Fuji — Color Palette & Design Direction</h2>
+<p class="subtitle">Colors extracted from Hokusai's "Fine Wind, Clear Morning." Pick the design direction that feels right.</p>
+
+<div style="display:flex;gap:12px;margin:20px 0;flex-wrap:wrap;">
+  <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+    <div style="width:64px;height:64px;border-radius:8px;background:#B5401E;border:1px solid rgba(255,255,255,0.15)"></div>
+    <span style="font-size:11px;color:#aaa;">Fuji Red</span>
+  </div>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+    <div style="width:64px;height:64px;border-radius:8px;background:#4A6A9A;border:1px solid rgba(255,255,255,0.15)"></div>
+    <span style="font-size:11px;color:#aaa;">Sky Blue</span>
+  </div>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+    <div style="width:64px;height:64px;border-radius:8px;background:#E8D49A;border:1px solid rgba(255,255,255,0.15)"></div>
+    <span style="font-size:11px;color:#aaa;">Cloud Cream</span>
+  </div>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+    <div style="width:64px;height:64px;border-radius:8px;background:#1C2E18;border:1px solid rgba(255,255,255,0.15)"></div>
+    <span style="font-size:11px;color:#aaa;">Forest Dark</span>
+  </div>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+    <div style="width:64px;height:64px;border-radius:8px;background:#D4885A;border:1px solid rgba(255,255,255,0.15)"></div>
+    <span style="font-size:11px;color:#aaa;">Base Amber</span>
+  </div>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+    <div style="width:64px;height:64px;border-radius:8px;background:#F0EAE0;border:1px solid rgba(255,255,255,0.15)"></div>
+    <span style="font-size:11px;color:#aaa;">Snow White</span>
+  </div>
+</div>
+
+<h3 style="margin-top:24px;">Which design direction?</h3>
+
+<div class="cards" style="display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;">
+
+  <div class="card" data-choice="A" onclick="toggleSelect(this)" style="flex:1;min-width:240px;cursor:pointer;border-radius:12px;overflow:hidden;border:2px solid transparent;transition:border-color 0.2s;">
+    <!-- Option A: Dark with red glow -->
+    <div style="height:180px;background:linear-gradient(135deg, #0D1420 0%, #1A1010 60%, #2A1208 100%);position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+      <div style="position:absolute;bottom:-20px;left:50%;transform:translateX(-50%);width:120px;height:80px;background:radial-gradient(ellipse, rgba(181,64,30,0.45) 0%, transparent 70%);border-radius:50%;"></div>
+      <div style="text-align:center;position:relative;z-index:1;">
+        <div style="font-size:13px;font-weight:600;color:#E8D49A;letter-spacing:0.05em;">FIND A TRACK</div>
+        <div style="margin-top:8px;background:#B5401E22;border:1px solid #B5401E55;border-radius:6px;padding:6px 14px;">
+          <span style="color:#D4885A;font-size:11px;">Search Spotify...</span>
+        </div>
+      </div>
+    </div>
+    <div class="card-body" style="padding:12px;">
+      <h3 style="margin:0 0 4px;">A — Dark with Fuji Glow</h3>
+      <p style="margin:0;font-size:12px;color:#888;">Near-black base, deep red radial bloom rising from the bottom like the mountain at dawn. Accent in amber/cream.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="B" onclick="toggleSelect(this)" style="flex:1;min-width:240px;cursor:pointer;border-radius:12px;overflow:hidden;border:2px solid transparent;transition:border-color 0.2s;">
+    <!-- Option B: Sky gradient top, mountain base bottom -->
+    <div style="height:180px;background:linear-gradient(180deg, #2C4A78 0%, #4A6A9A 40%, #B5401E 80%, #8B2E14 100%);position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+      <div style="position:absolute;top:16px;left:0;right:0;display:flex;justify-content:center;gap:8px;">
+        <div style="height:3px;width:40px;background:#E8D49A55;border-radius:2px;"></div>
+        <div style="height:3px;width:24px;background:#E8D49A33;border-radius:2px;"></div>
+        <div style="height:3px;width:32px;background:#E8D49A44;border-radius:2px;"></div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:13px;font-weight:600;color:#F0EAE0;letter-spacing:0.05em;">FIND A TRACK</div>
+        <div style="margin-top:8px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);border-radius:6px;padding:6px 14px;">
+          <span style="color:#E8D49A;font-size:11px;">Search Spotify...</span>
+        </div>
+      </div>
+    </div>
+    <div class="card-body" style="padding:12px;">
+      <h3 style="margin:0 0 4px;">B — Sky-to-Mountain Gradient</h3>
+      <p style="margin:0;font-size:12px;color:#888;">Indigo sky at top, terracotta mountain red at bottom. Full-painting gradient. Cloud-stripe accents.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="C" onclick="toggleSelect(this)" style="flex:1;min-width:240px;cursor:pointer;border-radius:12px;overflow:hidden;border:2px solid transparent;transition:border-color 0.2s;">
+    <!-- Option C: Dark navy, accent color on interactions only -->
+    <div style="height:180px;background:#0F1822;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#B5401E,#D4885A,#4A6A9A);"></div>
+      <div style="text-align:center;">
+        <div style="font-size:13px;font-weight:600;color:#E8D49A;letter-spacing:0.05em;">FIND A TRACK</div>
+        <div style="margin-top:8px;background:#0D1420;border:1px solid #B5401E88;border-radius:6px;padding:6px 14px;">
+          <span style="color:#D4885A;font-size:11px;">Search Spotify...</span>
+        </div>
+        <div style="margin-top:10px;display:flex;gap:6px;justify-content:center;">
+          <div style="width:32px;height:32px;border-radius:4px;background:#1A2030;border:1px solid #B5401E44;"></div>
+          <div style="width:80px;height:32px;border-radius:4px;background:#1A2030;border:1px solid #33445566;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body" style="padding:12px;">
+      <h3 style="margin:0 0 4px;">C — Dark Navy, Hokusai Accents</h3>
+      <p style="margin:0;font-size:12px;color:#888;">Deep navy background, palette used only for accents, borders, and hover states. Subtler, more "app-like."</p>
+    </div>
+  </div>
+
+</div>
+
+<p style="margin-top:16px;font-size:12px;color:#666;">Click a card to select, then tell me in the terminal. All three use the same Red Fuji palette — it's about how dominant the painting's feel is.</p>
+
+<style>
+  .card { border: 2px solid transparent !important; }
+  .card.selected { border-color: #B5401E !important; }
+</style>

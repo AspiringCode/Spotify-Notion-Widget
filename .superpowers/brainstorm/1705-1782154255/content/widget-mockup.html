@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Widget Mockup — Red Fuji B</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0a0a12;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 32px;
+  }
+
+  .widget {
+    width: 780px;
+    height: 480px;
+    border-radius: 18px;
+    overflow: hidden;
+    display: flex;
+    position: relative;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.06);
+  }
+
+  /* The sky-to-mountain gradient as the shared background */
+  .widget::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(175deg,
+      #1E3560 0%,
+      #2C4A78 18%,
+      #4A6A9A 38%,
+      #8B3A22 65%,
+      #B5401E 80%,
+      #7A2010 100%
+    );
+    z-index: 0;
+  }
+
+  /* Subtle cloud stripe texture at the top */
+  .cloud-layer {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 140px;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent 0px,
+      transparent 10px,
+      rgba(232,212,154,0.04) 10px,
+      rgba(232,212,154,0.04) 12px
+    );
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  /* Amber glow at the mountain base */
+  .mountain-glow {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 180px;
+    background: radial-gradient(ellipse 90% 60% at 50% 110%, rgba(212,136,90,0.35) 0%, transparent 70%);
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  /* Divider line between panels */
+  .divider {
+    position: absolute;
+    left: 50%; top: 10%; bottom: 10%;
+    width: 1px;
+    background: linear-gradient(180deg, transparent, rgba(232,212,154,0.2) 30%, rgba(232,212,154,0.2) 70%, transparent);
+    z-index: 3;
+  }
+
+  .search-panel, .player-panel {
+    position: relative;
+    z-index: 2;
+    width: 50%;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  /* ---- SEARCH PANEL ---- */
+  .brand-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 2px;
+  }
+  .brand-dot {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #E8D49A, #D4885A);
+    flex-shrink: 0;
+  }
+  .brand-text h1 {
+    font-size: 14px;
+    font-weight: 700;
+    color: #F0EAE0;
+    letter-spacing: 0.04em;
+  }
+  .brand-text p {
+    font-size: 10px;
+    color: rgba(232,212,154,0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-top: 1px;
+  }
+
+  .auth-strip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(0,0,0,0.2);
+    border: 1px solid rgba(232,212,154,0.12);
+    border-radius: 8px;
+    padding: 6px 10px;
+  }
+  .auth-strip span {
+    font-size: 10px;
+    color: rgba(232,212,154,0.7);
+  }
+  .auth-strip .connect-btn {
+    font-size: 10px;
+    background: #B5401E;
+    color: #F0EAE0;
+    border: none;
+    border-radius: 5px;
+    padding: 3px 10px;
+    cursor: pointer;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+  }
+
+  .search-row {
+    display: flex;
+    gap: 6px;
+  }
+  .search-row input {
+    flex: 1;
+    background: rgba(0,0,0,0.25);
+    border: 1px solid rgba(232,212,154,0.18);
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: #F0EAE0;
+    font-size: 12px;
+    outline: none;
+  }
+  .search-row input::placeholder { color: rgba(240,234,224,0.4); }
+  .search-row button {
+    background: #B5401E;
+    color: #F0EAE0;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+  }
+
+  .results-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .track {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 10px;
+    border-radius: 8px;
+    background: rgba(0,0,0,0.18);
+    border: 1px solid rgba(255,255,255,0.05);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .track.active {
+    background: rgba(181,64,30,0.3);
+    border-color: rgba(181,64,30,0.5);
+  }
+  .track-thumb {
+    width: 32px; height: 32px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    background: linear-gradient(135deg, #2C3A5A, #4A2218);
+  }
+  .track-thumb.t1 { background: linear-gradient(135deg, #3A2A5A, #6A1A3A); }
+  .track-thumb.t2 { background: linear-gradient(135deg, #1A3A4A, #2A5A3A); }
+  .track-thumb.t3 { background: linear-gradient(135deg, #4A3A1A, #8A5A1A); }
+  .track-thumb.t4 { background: linear-gradient(135deg, #2A1A4A, #5A1A2A); }
+  .track-info { flex: 1; min-width: 0; }
+  .track-info strong { display: block; font-size: 11px; color: #F0EAE0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .track-info span { font-size: 10px; color: rgba(232,212,154,0.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+  .radio-badge {
+    font-size: 9px;
+    color: #D4885A;
+    background: rgba(212,136,90,0.15);
+    border: 1px solid rgba(212,136,90,0.3);
+    border-radius: 4px;
+    padding: 2px 5px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* ---- PLAYER PANEL ---- */
+  .now-playing-label {
+    font-size: 9px;
+    color: rgba(232,212,154,0.55);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 600;
+  }
+
+  .album-art {
+    width: 100%;
+    aspect-ratio: 1;
+    max-height: 130px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #3A2A5A, #6A1A3A);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    flex-shrink: 0;
+  }
+
+  .track-meta h2 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #F0EAE0;
+    line-height: 1.2;
+    margin-bottom: 3px;
+  }
+  .track-meta p {
+    font-size: 12px;
+    color: rgba(232,212,154,0.7);
+  }
+
+  .playback-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(0,0,0,0.2);
+    border: 1px solid rgba(181,64,30,0.3);
+    border-radius: 8px;
+    padding: 7px 10px;
+  }
+  .status-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #D4885A;
+    animation: pulse 2s ease-in-out infinite;
+    flex-shrink: 0;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .playback-status span {
+    font-size: 10px;
+    color: rgba(232,212,154,0.8);
+  }
+
+  .spotify-embed-stub {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 10px;
+    height: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .spotify-embed-stub .play-icon {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: #1DB954;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .spotify-embed-stub .play-icon::after {
+    content: '';
+    border-left: 10px solid white;
+    border-top: 6px solid transparent;
+    border-bottom: 6px solid transparent;
+    margin-left: 2px;
+  }
+  .spotify-embed-stub .wave {
+    flex: 1;
+    height: 24px;
+    background: repeating-linear-gradient(
+      90deg,
+      rgba(232,212,154,0.15) 0px, rgba(232,212,154,0.15) 2px,
+      transparent 2px, transparent 6px
+    );
+    border-radius: 2px;
+  }
+</style>
+</head>
+<body>
+<div class="widget">
+  <div class="cloud-layer"></div>
+  <div class="mountain-glow"></div>
+  <div class="divider"></div>
+
+  <!-- SEARCH PANEL -->
+  <div class="search-panel">
+    <div class="brand-row">
+      <div class="brand-dot"></div>
+      <div class="brand-text">
+        <h1>Notion Spotify</h1>
+        <p>Find a track</p>
+      </div>
+    </div>
+
+    <div class="auth-strip">
+      <span>Connected as <strong style="color:#E8D49A">Pragyan</strong> · Premium</span>
+      <button class="connect-btn">Disconnect</button>
+    </div>
+
+    <div class="search-row">
+      <input placeholder="Search Spotify..." value="Travis Scott" readonly>
+      <button>Search</button>
+    </div>
+
+    <div class="results-list">
+      <div class="track active">
+        <div class="track-thumb t1"></div>
+        <div class="track-info">
+          <strong>FEIN</strong>
+          <span>Travis Scott, Playboi Carti</span>
+        </div>
+        <span class="radio-badge">▶ Playing</span>
+      </div>
+      <div class="track">
+        <div class="track-thumb t2"></div>
+        <div class="track-info">
+          <strong>FE!N</strong>
+          <span>Travis Scott</span>
+        </div>
+      </div>
+      <div class="track">
+        <div class="track-thumb t3"></div>
+        <div class="track-info">
+          <strong>Sicko Mode</strong>
+          <span>Travis Scott</span>
+        </div>
+      </div>
+      <div class="track">
+        <div class="track-thumb t4"></div>
+        <div class="track-info">
+          <strong>goosebumps</strong>
+          <span>Travis Scott</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PLAYER PANEL -->
+  <div class="player-panel">
+    <span class="now-playing-label">Now Playing</span>
+
+    <div style="display:flex;gap:14px;align-items:flex-start;flex:0 0 auto;">
+      <div class="album-art" style="width:100px;height:100px;max-height:none;"></div>
+      <div class="track-meta" style="padding-top:4px;">
+        <h2>FEIN</h2>
+        <p>Travis Scott, Playboi Carti</p>
+        <p style="font-size:10px;color:rgba(232,212,154,0.4);margin-top:4px;">UTOPIA</p>
+      </div>
+    </div>
+
+    <div class="playback-status">
+      <div class="status-dot"></div>
+      <span>Started on Spotify · 10 similar tracks queued</span>
+    </div>
+
+    <div class="spotify-embed-stub">
+      <div class="play-icon"></div>
+      <div class="wave"></div>
+    </div>
+
+    <div style="font-size:10px;color:rgba(232,212,154,0.35);text-align:center;padding:2px 0;">
+      Spotify iframe embed · Radio queue active
+    </div>
+  </div>
+</div>
+</body>
+</html>
