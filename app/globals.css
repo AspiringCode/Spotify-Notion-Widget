@@ -236,6 +236,7 @@ h2 {
   cursor: pointer;
   width: 100%;
   text-align: left;
+  transition: background 0.15s ease;
 }
 
 .track-result:hover {
@@ -327,7 +328,14 @@ h2 {
   display: block;
   height: 9px;
   border-radius: 4px;
-  background: rgba(232, 212, 154, 0.08);
+  background: linear-gradient(
+    90deg,
+    rgba(232, 212, 154, 0.06) 25%,
+    rgba(232, 212, 154, 0.14) 50%,
+    rgba(232, 212, 154, 0.06) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
   width: 70%;
   font-style: normal;
 }
@@ -336,7 +344,14 @@ h2 {
   display: block;
   height: 8px;
   border-radius: 4px;
-  background: rgba(232, 212, 154, 0.05);
+  background: linear-gradient(
+    90deg,
+    rgba(232, 212, 154, 0.04) 25%,
+    rgba(232, 212, 154, 0.10) 50%,
+    rgba(232, 212, 154, 0.04) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite 0.2s;
   width: 45%;
   font-weight: normal;
 }
@@ -400,4 +415,9 @@ h2 {
     rgba(0, 0, 0, 0.15) 31%,
     rgba(0, 0, 0, 0.15) 100%
   );
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
