@@ -341,6 +341,23 @@ export async function searchSpotifyTracks(query: string): Promise<Track[]> {
   return (data.tracks?.items ?? []).map(mapSpotifyTrack);
 }
 
+export async function skipSpotifyTrack(
+  accessToken: string,
+  direction: "next" | "previous"
+): Promise<void> {
+  const response = await fetch(
+    `https://api.spotify.com/v1/me/player/${direction}`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: "no-store"
+    }
+  );
+  if (!response.ok) {
+    throw new Error(`Spotify skip ${direction} failed with status ${response.status}`);
+  }
+}
+
 export async function getSpotifyRecommendations(
   accessToken: string,
   seedTrackId: string,

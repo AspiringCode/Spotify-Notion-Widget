@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import type { Track } from "@/lib/spotify";
 
 type SearchState = "idle" | "loading" | "ready" | "empty" | "error";
+type CompactView = "search" | "player";
 
 type AuthStatus = {
   connected: boolean;
@@ -19,6 +20,7 @@ export default function App() {
   const [state, setState] = useState<SearchState>("idle");
   const [error, setError] = useState("");
   const [authStatus, setAuthStatus] = useState<AuthStatus>({ connected: false });
+  const [compactView, setCompactView] = useState<CompactView>("search");
 
   useEffect(() => {
     void refreshAuthStatus();
@@ -71,6 +73,7 @@ export default function App() {
 
   async function playTrack(track: Track) {
     setSelectedTrack(track);
+    setCompactView("player");
 
     if (!authStatus.connected) {
       return;
@@ -90,6 +93,19 @@ export default function App() {
     }
   }
 
+  async function skip(direction: "next" | "previous") {
+    if (!authStatus.connected) return;
+    try {
+      await fetch("/api/skip", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ direction })
+      });
+    } catch {
+      // best-effort
+    }
+  }
+
   async function disconnectSpotify() {
     await fetch("/api/auth/logout", { method: "POST" });
     setAuthStatus({ connected: false });
@@ -101,7 +117,7 @@ export default function App() {
   }
 
   return (
-    <main className="widget-shell">
+    <main className="widget-shell" data-view={compactView}>
       <section className="search-panel" aria-label="Spotify track search">
         <div className="brand-row">
           <span className="brand-mark" aria-hidden="true" />
@@ -176,21 +192,53 @@ export default function App() {
       </section>
 
       <section className="player-panel" aria-label="Selected Spotify track">
+        <button
+          className="close-btn"
+          type="button"
+          aria-label="Back to search"
+          onClick={() => setCompactView("search")}
+        >
+          ✕
+        </button>
+
         {selectedTrack ? (
           <>
             <div className="selected-track">
-              {selectedTrack.image ? (
-                <img src={selectedTrack.image} alt={`${selectedTrack.album} album cover`} />
-              ) : (
-                <div className="cover-fallback" aria-hidden="true" />
-              )}
-              <div>
+              <div className="album-wrapper">
+                {selectedTrack.image ? (
+                  <img src={selectedTrack.image} alt={`${selectedTrack.album} album cover`} />
+                ) : (
+                  <div className="cover-fallback" aria-hidden="true" />
+                )}
+              </div>
+              <div className="track-meta">
                 <p className="eyebrow">Now playing</p>
                 <h2>{selectedTrack.name}</h2>
                 <p>{selectedTrack.artists}</p>
               </div>
             </div>
+
+            <div className="player-controls">
+              <button
+                className="control-btn"
+                type="button"
+                aria-label="Previous track"
+                onClick={() => void skip("previous")}
+              >
+                ⏮ Previous
+              </button>
+              <button
+                className="control-btn"
+                type="button"
+                aria-label="Next track"
+                onClick={() => void skip("next")}
+              >
+                Next ⏭
+              </button>
+            </div>
+
             <iframe
+              className="spotify-embed"
               title={`${selectedTrack.name} by ${selectedTrack.artists}`}
               src={`https://open.spotify.com/embed/track/${selectedTrack.id}`}
               width="100%"
@@ -258,4 +306,3 @@ function LoadingRows() {
     </>
   );
 }
-
