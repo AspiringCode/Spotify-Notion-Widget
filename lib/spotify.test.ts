@@ -4,9 +4,11 @@ import {
   buildPlaybackPlan,
   buildSpotifyAuthorizeUrl,
   getSpotifyRecommendations,
+  createSpotifyOAuthState,
   mapSpotifyTrack,
   requireSpotifyCredentials,
-  requireSpotifyOAuthConfig
+  requireSpotifyOAuthConfig,
+  verifySpotifyOAuthState
 } from "./spotify";
 
 describe("mapSpotifyTrack", () => {
@@ -116,6 +118,22 @@ describe("buildSpotifyAuthorizeUrl", () => {
     expect(url.searchParams.get("state")).toBe("state-123");
     expect(url.searchParams.get("scope")).toContain("user-modify-playback-state");
     expect(url.searchParams.get("scope")).toContain("user-read-playback-state");
+  });
+});
+
+describe("Spotify OAuth state", () => {
+  it("creates and verifies a signed state token", () => {
+    const state = createSpotifyOAuthState("state-secret", 1700000000000, "nonce-123");
+
+    expect(verifySpotifyOAuthState(state, "state-secret", 1700000005000)).toBe(true);
+  });
+
+  it("rejects tampered or expired state tokens", () => {
+    const state = createSpotifyOAuthState("state-secret", 1700000000000, "nonce-123");
+    const tampered = state.replace(/.$/, "x");
+
+    expect(verifySpotifyOAuthState(tampered, "state-secret", 1700000005000)).toBe(false);
+    expect(verifySpotifyOAuthState(state, "state-secret", 1700000000000 + 11 * 60 * 1000)).toBe(false);
   });
 });
 

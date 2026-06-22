@@ -1,7 +1,6 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { exchangeSpotifyCodeForToken } from "@/lib/spotify";
-import { OAUTH_STATE_COOKIE, setSpotifyTokenCookies } from "@/lib/spotify-session";
+import { exchangeSpotifyCodeForToken, requireSpotifyCredentials, verifySpotifyOAuthState } from "@/lib/spotify";
+import { setSpotifyTokenCookies } from "@/lib/spotify-session";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -9,21 +8,24 @@ export async function GET(request: Request) {
   const state = url.searchParams.get("state");
   const error = url.searchParams.get("error");
   const origin = url.origin;
-  const store = await cookies();
-  const expectedState = store.get(OAUTH_STATE_COOKIE)?.value;
 
   if (error) {
     return NextResponse.redirect(new URL(`/?spotify=${encodeURIComponent(error)}`, origin));
   }
 
-  if (!code || !state || !expectedState || state !== expectedState) {
+  if (!code || !state) {
+    return NextResponse.redirect(new URL("/?spotify=auth-state-error", origin));
+  }
+
+  const { clientSecret } = requireSpotifyCredentials();
+
+  if (!verifySpotifyOAuthState(state, clientSecret)) {
     return NextResponse.redirect(new URL("/?spotify=auth-state-error", origin));
   }
 
   try {
     const token = await exchangeSpotifyCodeForToken(code);
     await setSpotifyTokenCookies(token);
-    store.delete(OAUTH_STATE_COOKIE);
 
     return NextResponse.redirect(new URL("/?spotify=connected", origin));
   } catch {

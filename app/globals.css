@@ -388,25 +388,27 @@ h2 {
   gap: 10px;
 }
 
+/* Square album, capped at 200px on wide screens so it doesn't fill the whole panel */
 .album-wrapper {
-  width: 100%;
+  width: min(100%, 200px);
+  aspect-ratio: 1 / 1;
+  margin: 0 auto;
   flex-shrink: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
 }
 
 .album-wrapper img,
 .album-wrapper .cover-fallback {
   width: 100%;
-  aspect-ratio: 1 / 1;
-  height: auto;
+  height: 100%;
   object-fit: cover;
-  border-radius: 12px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
   display: block;
 }
 
 .album-wrapper .cover-fallback {
   background: rgba(232, 212, 154, 0.08);
-  box-shadow: none;
 }
 
 .track-meta h2 {
@@ -488,8 +490,8 @@ h2 {
   100% { background-position: -200% 0; }
 }
 
-/* ── Compact / single-panel mode (narrow embeds) ── */
-@media (max-width: 480px) {
+/* ── Compact / single-panel mode (narrow embeds, e.g. Notion inline blocks) ── */
+@media (max-width: 650px) {
   /* Show X button */
   .close-btn {
     display: flex;
@@ -509,34 +511,42 @@ h2 {
     flex: 1;
   }
 
-  /* Player layout: album fills available space, controls + iframe at bottom */
+  /* Player: leave room for close button, then stack album → controls → embed */
   .player-panel {
-    padding-top: 44px; /* clear the X button */
+    padding-top: 44px;
   }
 
+  /* selected-track grows to fill remaining space above controls */
   .selected-track {
     flex: 1;
     min-height: 0;
   }
 
-  /* Album wrapper fills remaining vertical space, image stays square */
+  /* Album wrapper expands to fill flex space; image fits as large square as possible */
   .album-wrapper {
     flex: 1;
     min-height: 0;
+    width: 100%;
+    max-width: none;
+    aspect-ratio: unset;
+    margin: 0;
+    border-radius: 12px;
     display: flex;
     align-items: center;
+    justify-content: center;
   }
 
   .album-wrapper img,
   .album-wrapper .cover-fallback {
-    /* square constrained to whichever axis is smaller */
     width: 100%;
-    max-height: 100%;
+    height: auto;
     aspect-ratio: 1 / 1;
+    /* clamp: if flex height < width, shrink to fit */
+    max-height: 100%;
     object-fit: cover;
   }
 
-  /* Compact Spotify embed bar */
+  /* Compact Spotify embed — thin bar at the bottom */
   .spotify-embed {
     height: 80px !important;
   }

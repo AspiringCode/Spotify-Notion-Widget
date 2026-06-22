@@ -1,3 +1,5 @@
+import { createHmac, timingSafeEqual, randomUUID } from "node:crypto";
+
 export type Track = {
   id: string;
   name: string;
@@ -81,6 +83,7 @@ export type SpotifyProfile = {
 };
 
 export const SPOTIFY_PLAYBACK_SCOPES = ["user-modify-playback-state", "user-read-playback-state"];
+const SPOTIFY_OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
 
 let cachedToken: { value: string; expiresAt: number } | null = null;
 
@@ -116,6 +119,50 @@ export function buildSpotifyAuthorizeUrl({ clientId, redirectUri, state }: Autho
   });
 
   return `https://accounts.spotify.com/authorize?${params.toString()}`;
+}
+
+function encodeBase64Url(value: string): string {
+  return Buffer.from(value).toString("base64url");
+}
+
+function decodeBase64Url(value: string): string {
+  return Buffer.from(value, "base64url").toString("utf8");
+}
+
+export function createSpotifyOAuthState(secret: string, issuedAt = Date.now(), nonce = randomUUID()): string {
+  const payload = JSON.stringify({ issuedAt, nonce });
+  const payloadPart = encodeBase64Url(payload);
+  const signature = createHmac("sha256", secret).update(payloadPart).digest("base64url");
+  return `${payloadPart}.${signature}`;
+}
+
+export function verifySpotifyOAuthState(state: string, secret: string, now = Date.now()): boolean {
+  const [payloadPart, signaturePart] = state.split(".");
+
+  if (!payloadPart || !signaturePart) {
+    return false;
+  }
+
+  const expectedSignature = createHmac("sha256", secret).update(payloadPart).digest("base64url");
+  const expectedBytes = Buffer.from(expectedSignature);
+  const actualBytes = Buffer.from(signaturePart);
+
+  if (expectedBytes.length !== actualBytes.length || !timingSafeEqual(expectedBytes, actualBytes)) {
+    return false;
+  }
+
+  try {
+    const payload = JSON.parse(decodeBase64Url(payloadPart)) as { issuedAt?: number };
+    const issuedAt = payload.issuedAt;
+
+    if (typeof issuedAt !== "number") {
+      return false;
+    }
+
+    return now - issuedAt >= 0 && now - issuedAt <= SPOTIFY_OAUTH_STATE_TTL_MS;
+  } catch {
+    return false;
+  }
 }
 
 export function buildPlaybackQueue(selectedTrackId: string, tracks: PlaybackTrack[]): string[] {
