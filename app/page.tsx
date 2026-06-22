@@ -1,9 +1,7 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import type { Track } from "@/lib/spotify";
-
-const DEFAULT_COLOR = "34 197 94";
 
 type SearchState = "idle" | "loading" | "ready" | "empty" | "error";
 
@@ -21,8 +19,6 @@ export default function App() {
   const [state, setState] = useState<SearchState>("idle");
   const [error, setError] = useState("");
   const [authStatus, setAuthStatus] = useState<AuthStatus>({ connected: false });
-  const [playbackMessage, setPlaybackMessage] = useState("");
-  const albumColor = useAlbumColor(selectedTrack?.image);
 
   useEffect(() => {
     void refreshAuthStatus();
@@ -75,44 +71,28 @@ export default function App() {
 
   async function playTrack(track: Track) {
     setSelectedTrack(track);
-    setPlaybackMessage("");
 
     if (!authStatus.connected) {
-      setPlaybackMessage("Connect Spotify to start a real queue. The embed is loaded below.");
       return;
     }
 
     try {
-      const response = await fetch("/api/play", {
+      await fetch("/api/play", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           selectedTrackId: track.id,
-          tracks: tracks.map(({ id, uri }) => ({ id, uri }))
+          selectedTrackUri: track.uri
         })
       });
-      const data = (await response.json()) as { playing?: boolean; queued?: number; error?: string };
-
-      if (!response.ok) {
-        throw new Error(data.error ?? "Spotify playback could not be started.");
-      }
-
-      setPlaybackMessage(
-        `Started on Spotify. Added ${data.queued ?? 0} track${data.queued === 1 ? "" : "s"} to your queue.`
-      );
-    } catch (playbackError) {
-      setPlaybackMessage(
-        playbackError instanceof Error ? playbackError.message : "Spotify playback could not be started."
-      );
+    } catch {
+      // best-effort; Spotify embed still loads
     }
   }
 
   async function disconnectSpotify() {
     await fetch("/api/auth/logout", { method: "POST" });
     setAuthStatus({ connected: false });
-    setPlaybackMessage("Spotify disconnected. The embed still works as a fallback.");
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -120,15 +100,8 @@ export default function App() {
     void runSearch();
   }
 
-  const shellStyle = useMemo(
-    () => ({
-      "--album-rgb": albumColor
-    }),
-    [albumColor]
-  );
-
   return (
-    <main className="widget-shell" style={shellStyle as React.CSSProperties}>
+    <main className="widget-shell">
       <section className="search-panel" aria-label="Spotify track search">
         <div className="brand-row">
           <span className="brand-mark" aria-hidden="true" />
@@ -212,12 +185,11 @@ export default function App() {
                 <div className="cover-fallback" aria-hidden="true" />
               )}
               <div>
-                <p className="eyebrow">Now embedded</p>
+                <p className="eyebrow">Now playing</p>
                 <h2>{selectedTrack.name}</h2>
                 <p>{selectedTrack.artists}</p>
               </div>
             </div>
-            {playbackMessage ? <p className="playback-message">{playbackMessage}</p> : null}
             <iframe
               title={`${selectedTrack.name} by ${selectedTrack.artists}`}
               src={`https://open.spotify.com/embed/track/${selectedTrack.id}`}
@@ -287,60 +259,3 @@ function LoadingRows() {
   );
 }
 
-function useAlbumColor(imageUrl?: string) {
-  const [color, setColor] = useState(DEFAULT_COLOR);
-  const requestId = useRef(0);
-
-  useEffect(() => {
-    if (!imageUrl) {
-      setColor(DEFAULT_COLOR);
-      return;
-    }
-
-    const currentRequest = requestId.current + 1;
-    requestId.current = currentRequest;
-    const image = new Image();
-    image.crossOrigin = "anonymous";
-
-    image.onload = () => {
-      if (requestId.current !== currentRequest) {
-        return;
-      }
-
-      const canvas = document.createElement("canvas");
-      const context = canvas.getContext("2d", { willReadFrequently: true });
-
-      if (!context) {
-        return;
-      }
-
-      canvas.width = 24;
-      canvas.height = 24;
-      context.drawImage(image, 0, 0, canvas.width, canvas.height);
-
-      try {
-        const { data } = context.getImageData(0, 0, canvas.width, canvas.height);
-        let red = 0;
-        let green = 0;
-        let blue = 0;
-        let count = 0;
-
-        for (let index = 0; index < data.length; index += 16) {
-          red += data[index];
-          green += data[index + 1];
-          blue += data[index + 2];
-          count += 1;
-        }
-
-        setColor(`${Math.round(red / count)} ${Math.round(green / count)} ${Math.round(blue / count)}`);
-      } catch {
-        setColor(DEFAULT_COLOR);
-      }
-    };
-
-    image.onerror = () => setColor(DEFAULT_COLOR);
-    image.src = imageUrl;
-  }, [imageUrl]);
-
-  return color;
-}
