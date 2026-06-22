@@ -99,7 +99,9 @@ export default function App() {
         throw new Error(data.error ?? "Spotify playback could not be started.");
       }
 
-      setPlaybackMessage(`Started on Spotify with ${data.queued ?? 1} track${data.queued === 1 ? "" : "s"} in order.`);
+      setPlaybackMessage(
+        `Started on Spotify. Added ${data.queued ?? 0} track${data.queued === 1 ? "" : "s"} to your queue.`
+      );
     } catch (playbackError) {
       setPlaybackMessage(
         playbackError instanceof Error ? playbackError.message : "Spotify playback could not be started."

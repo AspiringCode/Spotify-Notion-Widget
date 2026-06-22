@@ -63,6 +63,11 @@ type AuthorizeUrlOptions = {
 
 type PlaybackTrack = Pick<Track, "id" | "uri">;
 
+type PlaybackPlan = {
+  startUri: string;
+  queueUris: string[];
+};
+
 export type SpotifyUserToken = {
   accessToken: string;
   refreshToken?: string;
@@ -128,6 +133,16 @@ export function buildPlaybackQueue(selectedTrackId: string, tracks: PlaybackTrac
       seen.add(uri);
       return true;
     });
+}
+
+export function buildPlaybackPlan(selectedTrackId: string, tracks: PlaybackTrack[]): PlaybackPlan | null {
+  const [startUri, ...queueUris] = buildPlaybackQueue(selectedTrackId, tracks);
+
+  if (!startUri) {
+    return null;
+  }
+
+  return { startUri, queueUris };
 }
 
 export function mapSpotifyTrack(track: SpotifyTrackItem): Track {
@@ -273,6 +288,26 @@ export async function startSpotifyPlayback(accessToken: string, uris: string[], 
 
   if (!response.ok) {
     throw new Error(`Spotify playback request failed with status ${response.status}`);
+  }
+}
+
+export async function addSpotifyTrackToQueue(accessToken: string, uri: string, deviceId?: string): Promise<void> {
+  const params = new URLSearchParams({ uri });
+
+  if (deviceId) {
+    params.set("device_id", deviceId);
+  }
+
+  const response = await fetch(`https://api.spotify.com/v1/me/player/queue?${params.toString()}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`
+    },
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    throw new Error(`Spotify queue request failed with status ${response.status}`);
   }
 }
 

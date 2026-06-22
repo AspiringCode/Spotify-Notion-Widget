@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { buildPlaybackQueue, startSpotifyPlayback } from "@/lib/spotify";
+import { addSpotifyTrackToQueue, buildPlaybackPlan, startSpotifyPlayback } from "@/lib/spotify";
 import { getSpotifyUserAccessToken } from "@/lib/spotify-session";
 
 type PlayRequest = {
@@ -25,18 +25,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Select a track before starting playback." }, { status: 400 });
   }
 
-  const uris = buildPlaybackQueue(selectedTrackId, tracks);
+  const playbackPlan = buildPlaybackPlan(selectedTrackId, tracks);
 
-  if (!uris.length) {
+  if (!playbackPlan) {
     return NextResponse.json({ error: "No playable Spotify track URIs were provided." }, { status: 400 });
   }
 
   try {
-    await startSpotifyPlayback(accessToken, uris);
+    await startSpotifyPlayback(accessToken, [playbackPlan.startUri]);
+
+    for (const uri of playbackPlan.queueUris) {
+      await addSpotifyTrackToQueue(accessToken, uri);
+    }
 
     return NextResponse.json({
       playing: true,
-      queued: uris.length
+      queued: playbackPlan.queueUris.length
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
