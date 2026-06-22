@@ -218,6 +218,8 @@ describe("getSpotifyRecommendations", () => {
       vi.fn().mockResolvedValue({ ok: false, status: 401 })
     );
 
-    await expect(getSpotifyRecommendations("bad-token", "seed-id")).rejects.toThrow("401");
+    await expect(getSpotifyRecommendations("bad-token", "seed-id")).rejects.toThrow(
+      "Spotify recommendations request failed with status 401"
+    );
   });
 });

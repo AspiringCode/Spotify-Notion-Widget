@@ -346,12 +346,17 @@ export async function getSpotifyRecommendations(
   seedTrackId: string,
   limit = 10
 ): Promise<Track[]> {
+  if (!seedTrackId?.trim()) {
+    return [];
+  }
+
   const params = new URLSearchParams({
     seed_tracks: seedTrackId,
     limit: String(limit),
     market: "US"
   });
 
+  // Recommendations are personalized per seed track — skip cache
   const response = await fetch(
     `https://api.spotify.com/v1/recommendations?${params.toString()}`,
     {
