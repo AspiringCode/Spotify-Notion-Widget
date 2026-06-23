@@ -458,6 +458,37 @@ h2 {
   flex-shrink: 0;
 }
 
+/* ── Playback progress bar (replaces iframe when Premium is connected) ── */
+.playback-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.progress-track {
+  height: 3px;
+  background: rgba(232, 212, 154, 0.15);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  width: var(--progress, 0%);
+  background: rgba(232, 212, 154, 0.7);
+  border-radius: 3px;
+  transition: width 0.25s linear;
+}
+
+.time-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: rgba(232, 212, 154, 0.5);
+  font-variant-numeric: tabular-nums;
+}
+
 /* ── Player panel — empty state ── */
 .player-empty {
   display: flex;

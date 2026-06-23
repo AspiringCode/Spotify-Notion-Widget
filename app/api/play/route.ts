@@ -41,16 +41,20 @@ export async function POST(request: Request) {
     );
   }
 
+  // Small delay so the device has time to register playback before we queue
+  await new Promise<void>((resolve) => setTimeout(resolve, 500));
+
   let queued = 0;
+  let queueError: string | null = null;
   try {
     const recommendations = await getSpotifyRecommendations(accessToken, selectedTrackId, 10);
     for (const track of recommendations) {
       await addSpotifyTrackToQueue(accessToken, track.uri);
       queued++;
     }
-  } catch {
-    // queue is best-effort; playback already started successfully
+  } catch (err) {
+    queueError = err instanceof Error ? err.message : "Queue failed";
   }
 
-  return NextResponse.json({ playing: true, queued });
+  return NextResponse.json({ playing: true, queued, ...(queueError ? { queueError } : {}) });
 }

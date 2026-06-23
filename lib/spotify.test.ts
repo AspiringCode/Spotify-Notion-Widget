@@ -123,13 +123,13 @@ describe("buildSpotifyAuthorizeUrl", () => {
 
 describe("Spotify OAuth state", () => {
   it("creates and verifies a signed state token", () => {
-    const state = createSpotifyOAuthState("state-secret", 1700000000000, "nonce-123");
+    const state = createSpotifyOAuthState("state-secret", 1700000000000, "00000000-0000-0000-0000-000000000001");
 
     expect(verifySpotifyOAuthState(state, "state-secret", 1700000005000)).toBe(true);
   });
 
   it("rejects tampered or expired state tokens", () => {
-    const state = createSpotifyOAuthState("state-secret", 1700000000000, "nonce-123");
+    const state = createSpotifyOAuthState("state-secret", 1700000000000, "00000000-0000-0000-0000-000000000002");
     const tampered = state.replace(/.$/, "x");
 
     expect(verifySpotifyOAuthState(tampered, "state-secret", 1700000005000)).toBe(false);

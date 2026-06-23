@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import React, { FormEvent, useEffect, useRef, useState } from "react";
 import type { Track } from "@/lib/spotify";
 
 type SearchState = "idle" | "loading" | "ready" | "empty" | "error";
@@ -13,6 +13,29 @@ type AuthStatus = {
   product?: string;
 };
 
+type NowPlayingData = {
+  active: boolean;
+  isPlaying?: boolean;
+  progressMs?: number;
+  track?: {
+    id: string;
+    name: string;
+    uri: string;
+    durationMs: number;
+    artists: string;
+    album: string;
+    image: string;
+    spotifyUrl: string;
+  };
+};
+
+function formatMs(ms: number): string {
+  const totalSec = Math.floor(ms / 1000);
+  const min = Math.floor(totalSec / 60);
+  const sec = totalSec % 60;
+  return `${min}:${sec.toString().padStart(2, "0")}`;
+}
+
 export default function App() {
   const [query, setQuery] = useState("");
   const [tracks, setTracks] = useState<Track[]>([]);
@@ -21,9 +44,75 @@ export default function App() {
   const [error, setError] = useState("");
   const [authStatus, setAuthStatus] = useState<AuthStatus>({ connected: false });
   const [compactView, setCompactView] = useState<CompactView>("search");
+  const [nowPlaying, setNowPlaying] = useState<NowPlayingData>({ active: false });
+  const [localProgressMs, setLocalProgressMs] = useState(0);
+
+  // Tracks the progress source of truth between polls
+  const playbackSyncRef = useRef({ progressMs: 0, isPlaying: false, syncedAt: 0, durationMs: 0 });
+  // Tracks which song the widget last selected so we don't re-set on every poll
+  const currentTrackIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     void refreshAuthStatus();
+  }, []);
+
+  // Poll Spotify player every 2s — syncs track + progress with native app
+  useEffect(() => {
+    if (!authStatus.connected) return;
+
+    async function poll() {
+      try {
+        const res = await fetch("/api/now-playing", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = (await res.json()) as NowPlayingData;
+        setNowPlaying(data);
+
+        if (data.active && data.track) {
+          playbackSyncRef.current = {
+            progressMs: data.progressMs ?? 0,
+            isPlaying: data.isPlaying ?? false,
+            syncedAt: Date.now(),
+            durationMs: data.track.durationMs,
+          };
+          setLocalProgressMs(data.progressMs ?? 0);
+
+          // Sync UI when native Spotify changes track (skip, auto-advance, etc.)
+          if (data.track.id !== currentTrackIdRef.current) {
+            currentTrackIdRef.current = data.track.id;
+            setSelectedTrack({
+              id: data.track.id,
+              name: data.track.name,
+              artists: data.track.artists,
+              album: data.track.album,
+              image: data.track.image,
+              spotifyUrl: data.track.spotifyUrl,
+              uri: data.track.uri,
+            });
+            setCompactView("player");
+          }
+        } else {
+          playbackSyncRef.current = { ...playbackSyncRef.current, isPlaying: false };
+        }
+      } catch {
+        // ignore network errors
+      }
+    }
+
+    void poll();
+    const interval = setInterval(() => void poll(), 2000);
+    return () => clearInterval(interval);
+  }, [authStatus.connected]);
+
+  // Smooth progress tick — interpolates between polls so the bar moves every 250ms
+  useEffect(() => {
+    const tick = setInterval(() => {
+      const { progressMs, isPlaying, syncedAt, durationMs } = playbackSyncRef.current;
+      if (isPlaying && durationMs > 0) {
+        const elapsed = Date.now() - syncedAt;
+        setLocalProgressMs(Math.min(progressMs + elapsed, durationMs));
+      }
+    }, 250);
+    return () => clearInterval(tick);
   }, []);
 
   async function refreshAuthStatus() {
@@ -73,6 +162,7 @@ export default function App() {
 
   async function playTrack(track: Track) {
     setSelectedTrack(track);
+    currentTrackIdRef.current = track.id;
     setCompactView("player");
 
     if (!authStatus.connected) {
@@ -80,7 +170,7 @@ export default function App() {
     }
 
     try {
-      await fetch("/api/play", {
+      const res = await fetch("/api/play", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -88,8 +178,10 @@ export default function App() {
           selectedTrackUri: track.uri
         })
       });
+      const data = (await res.json()) as { queued?: number; queueError?: string };
+      if (data.queueError) console.warn("[widget] Queue error:", data.queueError);
     } catch {
-      // best-effort; Spotify embed still loads
+      // best-effort
     }
   }
 
@@ -237,15 +329,37 @@ export default function App() {
               </button>
             </div>
 
-            <iframe
-              className="spotify-embed"
-              title={`${selectedTrack.name} by ${selectedTrack.artists}`}
-              src={`https://open.spotify.com/embed/track/${selectedTrack.id}`}
-              width="100%"
-              height="152"
-              allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-              loading="lazy"
-            />
+            {authStatus.connected ? (
+              <div className="playback-bar">
+                <div className="progress-track">
+                  <div
+                    className="progress-fill"
+                    style={
+                      {
+                        "--progress":
+                          nowPlaying.active && nowPlaying.track
+                            ? `${Math.min((localProgressMs / nowPlaying.track.durationMs) * 100, 100)}%`
+                            : "0%",
+                      } as React.CSSProperties
+                    }
+                  />
+                </div>
+                <div className="time-row">
+                  <span>{nowPlaying.active ? formatMs(localProgressMs) : "--:--"}</span>
+                  <span>{nowPlaying.track ? formatMs(nowPlaying.track.durationMs) : "--:--"}</span>
+                </div>
+              </div>
+            ) : (
+              <iframe
+                className="spotify-embed"
+                title={`${selectedTrack.name} by ${selectedTrack.artists}`}
+                src={`https://open.spotify.com/embed/track/${selectedTrack.id}`}
+                width="100%"
+                height="152"
+                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                loading="lazy"
+              />
+            )}
           </>
         ) : (
           <div className="player-empty">
