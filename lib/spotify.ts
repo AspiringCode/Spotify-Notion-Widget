@@ -82,7 +82,11 @@ export type SpotifyProfile = {
   product?: "free" | "open" | "premium";
 };
 
-export const SPOTIFY_PLAYBACK_SCOPES = ["user-modify-playback-state", "user-read-playback-state"];
+export const SPOTIFY_PLAYBACK_SCOPES = [
+  "user-modify-playback-state",
+  "user-read-playback-state",
+  "user-read-currently-playing"
+];
 const SPOTIFY_OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
 
 let cachedToken: { value: string; expiresAt: number } | null = null;

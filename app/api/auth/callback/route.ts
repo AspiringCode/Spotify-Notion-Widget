@@ -26,9 +26,32 @@ function closePopupResponse(origin: string, status: "connected" | "token-error",
         margin: 0;
       }
       main {
-        max-width: 320px;
+        max-width: 520px;
         padding: 24px;
         text-align: center;
+      }
+      textarea {
+        background: #050505;
+        border: 1px solid #3a3a3a;
+        border-radius: 10px;
+        box-sizing: border-box;
+        color: #f4efe7;
+        font: 12px/1.4 ui-monospace, SFMono-Regular, Consolas, monospace;
+        height: 120px;
+        margin-top: 12px;
+        padding: 12px;
+        resize: none;
+        width: 100%;
+      }
+      button {
+        background: #1ed760;
+        border: 0;
+        border-radius: 999px;
+        color: #050505;
+        cursor: pointer;
+        font-weight: 700;
+        margin-top: 12px;
+        padding: 10px 18px;
       }
       a { color: #1ed760; }
     </style>
@@ -36,6 +59,13 @@ function closePopupResponse(origin: string, status: "connected" | "token-error",
   <body>
     <main>
       <h1>${message}</h1>
+      ${
+        session
+          ? `<p>If the Notion embed does not switch to connected, copy this connection code and paste it into the widget.</p>
+      <textarea id="connection-code" readonly>${session}</textarea>
+      <button type="button" id="copy-code">Copy connection code</button>`
+          : ""
+      }
       <p>If this window does not close automatically, return to your Notion embed.</p>
       <p><a href="/?spotify=${status}">Open the widget</a></p>
     </main>
@@ -43,7 +73,22 @@ function closePopupResponse(origin: string, status: "connected" | "token-error",
       if (window.opener) {
         window.opener.postMessage({ type: "spotify-${status}", session: ${escapedSession} }, ${escapedOrigin});
       }
-      window.close();
+      var copyButton = document.getElementById("copy-code");
+      var codeInput = document.getElementById("connection-code");
+      if (copyButton && codeInput) {
+        copyButton.addEventListener("click", function () {
+          codeInput.select();
+          navigator.clipboard.writeText(codeInput.value).then(function () {
+            copyButton.textContent = "Copied";
+          }).catch(function () {
+            document.execCommand("copy");
+            copyButton.textContent = "Copied";
+          });
+        });
+      }
+      window.setTimeout(function () {
+        if (!document.hasFocus()) window.close();
+      }, 1200);
     </script>
   </body>
 </html>`,

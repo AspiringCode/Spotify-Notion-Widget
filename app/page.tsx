@@ -70,6 +70,8 @@ export default function App() {
   const [state, setState] = useState<SearchState>("idle");
   const [error, setError] = useState("");
   const [authStatus, setAuthStatus] = useState<AuthStatus>({ connected: false });
+  const [connectionCode, setConnectionCode] = useState("");
+  const [connectionError, setConnectionError] = useState("");
   const [compactView, setCompactView] = useState<CompactView>("search");
   const [nowPlaying, setNowPlaying] = useState<NowPlayingData>({ active: false });
   const [localProgressMs, setLocalProgressMs] = useState(0);
@@ -315,6 +317,19 @@ export default function App() {
     }, 1500);
   }
 
+  async function applyConnectionCode() {
+    const session = connectionCode.trim();
+
+    if (!session) {
+      setConnectionError("Paste the connection code from the Spotify popup.");
+      return;
+    }
+
+    setStoredSpotifySession(session);
+    setConnectionError("");
+    await refreshAuthStatus();
+  }
+
   async function disconnectSpotify() {
     clearStoredSpotifySession();
     await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
@@ -361,6 +376,21 @@ export default function App() {
             </>
           )}
         </div>
+
+        {!authStatus.connected ? (
+          <div className="connection-code-row">
+            <input
+              aria-label="Spotify connection code"
+              placeholder="Paste connection code if popup does not connect..."
+              value={connectionCode}
+              onChange={(event) => setConnectionCode(event.target.value)}
+            />
+            <button type="button" onClick={() => void applyConnectionCode()}>
+              Use code
+            </button>
+            {connectionError ? <span>{connectionError}</span> : null}
+          </div>
+        ) : null}
 
         <form className="search-form" onSubmit={handleSubmit}>
           <label className="sr-only" htmlFor="spotify-search">
