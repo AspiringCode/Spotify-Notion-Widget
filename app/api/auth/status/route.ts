@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import { getSpotifyProfile } from "@/lib/spotify";
 import { getSpotifyUserAccessToken } from "@/lib/spotify-session";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const accessToken = await getSpotifyUserAccessToken();
+    const accessToken = await getSpotifyUserAccessToken(request);
 
     if (!accessToken) {
       return NextResponse.json({ connected: false });

@@ -15,8 +15,8 @@ type SpotifyPlayerState = {
   is_playing?: boolean;
 };
 
-export async function GET() {
-  const accessToken = await getSpotifyUserAccessToken();
+export async function GET(request: Request) {
+  const accessToken = await getSpotifyUserAccessToken(request);
   if (!accessToken) {
     return NextResponse.json({ active: false }, { status: 401 });
   }

@@ -29,11 +29,38 @@ type NowPlayingData = {
   };
 };
 
+const SPOTIFY_SESSION_STORAGE_KEY = "spotify_widget_session";
+
 function formatMs(ms: number): string {
   const totalSec = Math.floor(ms / 1000);
   const min = Math.floor(totalSec / 60);
   const sec = totalSec % 60;
   return `${min}:${sec.toString().padStart(2, "0")}`;
+}
+
+function getStoredSpotifySession(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.localStorage.getItem(SPOTIFY_SESSION_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function setStoredSpotifySession(session: string) {
+  try {
+    window.localStorage.setItem(SPOTIFY_SESSION_STORAGE_KEY, session);
+  } catch {
+    // Some embedded browsers block storage. Cookie auth still works outside those contexts.
+  }
+}
+
+function clearStoredSpotifySession() {
+  try {
+    window.localStorage.removeItem(SPOTIFY_SESSION_STORAGE_KEY);
+  } catch {
+    // best-effort
+  }
 }
 
 export default function App() {
@@ -60,7 +87,11 @@ export default function App() {
   useEffect(() => {
     function handleMessage(event: MessageEvent) {
       if (event.origin !== window.location.origin) return;
-      if ((event.data as { type?: string })?.type === "spotify-connected") {
+      const data = event.data as { type?: string; session?: string };
+      if (data.type === "spotify-connected") {
+        if (data.session) {
+          setStoredSpotifySession(data.session);
+        }
         void refreshAuthStatus();
         authPopupRef.current?.close();
       }
@@ -76,8 +107,13 @@ export default function App() {
 
     async function poll() {
       try {
-        const res = await fetch("/api/now-playing", { cache: "no-store", credentials: "include" });
-        if (!res.ok) return;
+        const res = await spotifyFetch("/api/now-playing", { cache: "no-store" });
+        if (!res.ok) {
+          if (res.status === 401) {
+            setAuthStatus({ connected: false });
+          }
+          return;
+        }
         const data = (await res.json()) as NowPlayingData;
         setNowPlaying(data);
 
@@ -131,12 +167,30 @@ export default function App() {
 
   async function refreshAuthStatus() {
     try {
-      const response = await fetch("/api/auth/status", { cache: "no-store", credentials: "include" });
+      const response = await spotifyFetch("/api/auth/status", { cache: "no-store" });
       const data = (await response.json()) as AuthStatus;
       setAuthStatus(data);
+      if (!data.connected && response.status === 401) {
+        clearStoredSpotifySession();
+      }
     } catch {
       setAuthStatus({ connected: false });
     }
+  }
+
+  async function spotifyFetch(input: RequestInfo | URL, init: RequestInit = {}) {
+    const headers = new Headers(init.headers);
+    const session = getStoredSpotifySession();
+
+    if (session) {
+      headers.set("Authorization", `Bearer ${session}`);
+    }
+
+    return fetch(input, {
+      ...init,
+      headers,
+      credentials: "include"
+    });
   }
 
   async function runSearch(nextQuery = query) {
@@ -184,9 +238,8 @@ export default function App() {
     }
 
     try {
-      const res = await fetch("/api/play", {
+      const res = await spotifyFetch("/api/play", {
         method: "POST",
-        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           selectedTrackId: track.id,
@@ -203,9 +256,8 @@ export default function App() {
   async function skip(direction: "next" | "previous") {
     if (!authStatus.connected) return;
     try {
-      await fetch("/api/skip", {
+      await spotifyFetch("/api/skip", {
         method: "POST",
-        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ direction })
       });
@@ -217,7 +269,7 @@ export default function App() {
   async function pause() {
     if (!authStatus.connected) return;
     try {
-      await fetch("/api/pause", { method: "POST", credentials: "include" });
+      await spotifyFetch("/api/pause", { method: "POST" });
       playbackSyncRef.current = { ...playbackSyncRef.current, isPlaying: false };
       setNowPlaying((current) => ({ ...current, isPlaying: false }));
     } catch {
@@ -228,7 +280,7 @@ export default function App() {
   async function resume() {
     if (!authStatus.connected) return;
     try {
-      await fetch("/api/resume", { method: "POST", credentials: "include" });
+      await spotifyFetch("/api/resume", { method: "POST" });
       playbackSyncRef.current = { ...playbackSyncRef.current, isPlaying: true, syncedAt: Date.now() };
       setNowPlaying((current) => ({ ...current, isPlaying: true }));
     } catch {
@@ -264,6 +316,7 @@ export default function App() {
   }
 
   async function disconnectSpotify() {
+    clearStoredSpotifySession();
     await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
     setAuthStatus({ connected: false });
   }

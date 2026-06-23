@@ -8,7 +8,7 @@ type PlayRequest = {
 };
 
 export async function POST(request: Request) {
-  const accessToken = await getSpotifyUserAccessToken();
+  const accessToken = await getSpotifyUserAccessToken(request);
 
   if (!accessToken) {
     return NextResponse.json({ error: "Connect Spotify before starting playback." }, { status: 401 });

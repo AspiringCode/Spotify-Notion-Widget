@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { exchangeSpotifyCodeForToken, requireSpotifyCredentials, verifySpotifyOAuthState } from "@/lib/spotify";
-import { setSpotifyTokenResponseCookies } from "@/lib/spotify-session";
+import { sealSpotifySession, setSpotifyTokenResponseCookies } from "@/lib/spotify-session";
 
-function closePopupResponse(origin: string, status: "connected" | "token-error") {
+function closePopupResponse(origin: string, status: "connected" | "token-error", session?: string) {
   const escapedOrigin = JSON.stringify(origin);
+  const escapedSession = JSON.stringify(session ?? null);
   const message = status === "connected" ? "Spotify connected. You can close this window." : "Spotify connection failed.";
 
   return new NextResponse(
@@ -40,7 +41,7 @@ function closePopupResponse(origin: string, status: "connected" | "token-error")
     </main>
     <script>
       if (window.opener) {
-        window.opener.postMessage({ type: "spotify-${status}" }, ${escapedOrigin});
+        window.opener.postMessage({ type: "spotify-${status}", session: ${escapedSession} }, ${escapedOrigin});
       }
       window.close();
     </script>
@@ -78,7 +79,8 @@ export async function GET(request: Request) {
 
   try {
     const token = await exchangeSpotifyCodeForToken(code);
-    const response = closePopupResponse(origin, "connected");
+    const session = sealSpotifySession(token);
+    const response = closePopupResponse(origin, "connected", session);
     setSpotifyTokenResponseCookies(response, token);
 
     return response;
