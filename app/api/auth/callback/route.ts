@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { exchangeSpotifyCodeForToken, requireSpotifyCredentials, verifySpotifyOAuthState } from "@/lib/spotify";
-import { setSpotifyTokenCookies } from "@/lib/spotify-session";
+import { setSpotifyTokenResponseCookies } from "@/lib/spotify-session";
 
 function closePopupResponse(origin: string, status: "connected" | "token-error") {
   const escapedOrigin = JSON.stringify(origin);
@@ -78,9 +78,10 @@ export async function GET(request: Request) {
 
   try {
     const token = await exchangeSpotifyCodeForToken(code);
-    await setSpotifyTokenCookies(token);
+    const response = closePopupResponse(origin, "connected");
+    setSpotifyTokenResponseCookies(response, token);
 
-    return closePopupResponse(origin, "connected");
+    return response;
   } catch {
     return closePopupResponse(origin, "token-error");
   }

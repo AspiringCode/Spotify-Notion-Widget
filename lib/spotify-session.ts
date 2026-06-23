@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import type { NextResponse } from "next/server";
 import { refreshSpotifyUserToken, type SpotifyUserToken } from "./spotify";
 
 const ACCESS_TOKEN_COOKIE = "spotify_access_token";
@@ -31,6 +32,25 @@ export async function setSpotifyTokenCookies(token: SpotifyUserToken) {
   }
 
   store.set(EXPIRES_AT_COOKIE, String(token.expiresAt), {
+    ...cookieOptions,
+    maxAge: 60 * 60 * 24 * 30
+  });
+}
+
+export function setSpotifyTokenResponseCookies(response: NextResponse, token: SpotifyUserToken) {
+  response.cookies.set(ACCESS_TOKEN_COOKIE, token.accessToken, {
+    ...cookieOptions,
+    maxAge: 60 * 60
+  });
+
+  if (token.refreshToken) {
+    response.cookies.set(REFRESH_TOKEN_COOKIE, token.refreshToken, {
+      ...cookieOptions,
+      maxAge: 60 * 60 * 24 * 30
+    });
+  }
+
+  response.cookies.set(EXPIRES_AT_COOKIE, String(token.expiresAt), {
     ...cookieOptions,
     maxAge: 60 * 60 * 24 * 30
   });
