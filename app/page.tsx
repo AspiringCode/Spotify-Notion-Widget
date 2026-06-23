@@ -51,9 +51,23 @@ export default function App() {
   const playbackSyncRef = useRef({ progressMs: 0, isPlaying: false, syncedAt: 0, durationMs: 0 });
   // Tracks which song the widget last selected so we don't re-set on every poll
   const currentTrackIdRef = useRef<string | null>(null);
+  const authPopupRef = useRef<Window | null>(null);
 
   useEffect(() => {
     void refreshAuthStatus();
+  }, []);
+
+  useEffect(() => {
+    function handleMessage(event: MessageEvent) {
+      if (event.origin !== window.location.origin) return;
+      if ((event.data as { type?: string })?.type === "spotify-connected") {
+        void refreshAuthStatus();
+        authPopupRef.current?.close();
+      }
+    }
+
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
   }, []);
 
   // Poll Spotify player every 2s — syncs track + progress with native app
@@ -211,19 +225,38 @@ export default function App() {
     }
   }
 
-  function connectSpotify() {
-    const authWindow = window.open("/api/auth/login", "spotify-auth", "width=520,height=720");
+  async function resume() {
+    if (!authStatus.connected) return;
+    try {
+      await fetch("/api/resume", { method: "POST", credentials: "include" });
+      playbackSyncRef.current = { ...playbackSyncRef.current, isPlaying: true, syncedAt: Date.now() };
+      setNowPlaying((current) => ({ ...current, isPlaying: true }));
+    } catch {
+      // best-effort
+    }
+  }
 
-    if (!authWindow) {
-      window.location.href = "/api/auth/login";
+  async function togglePlayback() {
+    if (nowPlaying.isPlaying) {
+      await pause();
       return;
     }
+
+    await resume();
+  }
+
+  function connectSpotify() {
+    authPopupRef.current = window.open(
+      "/api/auth/login",
+      "spotify-auth",
+      "popup=yes,width=520,height=720,menubar=no,toolbar=no,location=no,status=no"
+    );
 
     const startedAt = Date.now();
     const interval = window.setInterval(() => {
       void refreshAuthStatus();
 
-      if (authWindow.closed || Date.now() - startedAt > 2 * 60 * 1000) {
+      if (Date.now() - startedAt > 2 * 60 * 1000) {
         window.clearInterval(interval);
         void refreshAuthStatus();
       }
@@ -265,7 +298,11 @@ export default function App() {
           ) : (
             <>
               <span>Connect Premium to start a real Spotify queue.</span>
-              <button className="secondary-button" type="button" onClick={connectSpotify}>
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={connectSpotify}
+              >
                 Connect Spotify
               </button>
             </>
@@ -354,10 +391,10 @@ export default function App() {
               <button
                 className="control-btn control-btn-primary"
                 type="button"
-                aria-label="Pause playback"
-                onClick={() => void pause()}
+                aria-label={nowPlaying.isPlaying ? "Pause playback" : "Resume playback"}
+                onClick={() => void togglePlayback()}
               >
-                Pause
+                {nowPlaying.isPlaying ? "Pause" : "Resume"}
               </button>
               <button
                 className="control-btn"

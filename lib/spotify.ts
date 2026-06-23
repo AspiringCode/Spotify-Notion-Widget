@@ -417,6 +417,18 @@ export async function pauseSpotifyPlayback(accessToken: string): Promise<void> {
   }
 }
 
+export async function resumeSpotifyPlayback(accessToken: string): Promise<void> {
+  const response = await fetch("https://api.spotify.com/v1/me/player/play", {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${accessToken}` },
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    throw new Error(`Spotify resume failed with status ${response.status}`);
+  }
+}
+
 export async function getSpotifyRecommendations(
   accessToken: string,
   seedTrackId: string,

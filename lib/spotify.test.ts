@@ -9,6 +9,7 @@ import {
   pauseSpotifyPlayback,
   requireSpotifyCredentials,
   requireSpotifyOAuthConfig,
+  resumeSpotifyPlayback,
   verifySpotifyOAuthState
 } from "./spotify";
 
@@ -263,6 +264,30 @@ describe("pauseSpotifyPlayback", () => {
 
     await expect(pauseSpotifyPlayback("test-token")).rejects.toThrow(
       "Spotify pause failed with status 404"
+    );
+  });
+});
+
+describe("resumeSpotifyPlayback", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("resumes the current Spotify device", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true }));
+
+    await resumeSpotifyPlayback("test-token");
+
+    expect(fetch).toHaveBeenCalledWith("https://api.spotify.com/v1/me/player/play", {
+      method: "PUT",
+      headers: { Authorization: "Bearer test-token" },
+      cache: "no-store"
+    });
+  });
+
+  it("throws when Spotify refuses to resume", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 404 }));
+
+    await expect(resumeSpotifyPlayback("test-token")).rejects.toThrow(
+      "Spotify resume failed with status 404"
     );
   });
 });
