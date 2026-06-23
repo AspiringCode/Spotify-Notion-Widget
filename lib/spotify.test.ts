@@ -6,6 +6,7 @@ import {
   getSpotifyRecommendations,
   createSpotifyOAuthState,
   mapSpotifyTrack,
+  pauseSpotifyPlayback,
   requireSpotifyCredentials,
   requireSpotifyOAuthConfig,
   verifySpotifyOAuthState
@@ -238,6 +239,30 @@ describe("getSpotifyRecommendations", () => {
 
     await expect(getSpotifyRecommendations("bad-token", "seed-id")).rejects.toThrow(
       "Spotify recommendations request failed with status 401"
+    );
+  });
+});
+
+describe("pauseSpotifyPlayback", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("pauses the current Spotify device", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true }));
+
+    await pauseSpotifyPlayback("test-token");
+
+    expect(fetch).toHaveBeenCalledWith("https://api.spotify.com/v1/me/player/pause", {
+      method: "PUT",
+      headers: { Authorization: "Bearer test-token" },
+      cache: "no-store"
+    });
+  });
+
+  it("throws when Spotify refuses to pause", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 404 }));
+
+    await expect(pauseSpotifyPlayback("test-token")).rejects.toThrow(
+      "Spotify pause failed with status 404"
     );
   });
 });

@@ -62,7 +62,7 @@ export default function App() {
 
     async function poll() {
       try {
-        const res = await fetch("/api/now-playing", { cache: "no-store" });
+        const res = await fetch("/api/now-playing", { cache: "no-store", credentials: "include" });
         if (!res.ok) return;
         const data = (await res.json()) as NowPlayingData;
         setNowPlaying(data);
@@ -117,7 +117,7 @@ export default function App() {
 
   async function refreshAuthStatus() {
     try {
-      const response = await fetch("/api/auth/status", { cache: "no-store" });
+      const response = await fetch("/api/auth/status", { cache: "no-store", credentials: "include" });
       const data = (await response.json()) as AuthStatus;
       setAuthStatus(data);
     } catch {
@@ -172,6 +172,7 @@ export default function App() {
     try {
       const res = await fetch("/api/play", {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           selectedTrackId: track.id,
@@ -190,6 +191,7 @@ export default function App() {
     try {
       await fetch("/api/skip", {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ direction })
       });
@@ -198,8 +200,38 @@ export default function App() {
     }
   }
 
+  async function pause() {
+    if (!authStatus.connected) return;
+    try {
+      await fetch("/api/pause", { method: "POST", credentials: "include" });
+      playbackSyncRef.current = { ...playbackSyncRef.current, isPlaying: false };
+      setNowPlaying((current) => ({ ...current, isPlaying: false }));
+    } catch {
+      // best-effort
+    }
+  }
+
+  function connectSpotify() {
+    const authWindow = window.open("/api/auth/login", "spotify-auth", "width=520,height=720");
+
+    if (!authWindow) {
+      window.location.href = "/api/auth/login";
+      return;
+    }
+
+    const startedAt = Date.now();
+    const interval = window.setInterval(() => {
+      void refreshAuthStatus();
+
+      if (authWindow.closed || Date.now() - startedAt > 2 * 60 * 1000) {
+        window.clearInterval(interval);
+        void refreshAuthStatus();
+      }
+    }, 1500);
+  }
+
   async function disconnectSpotify() {
-    await fetch("/api/auth/logout", { method: "POST" });
+    await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
     setAuthStatus({ connected: false });
   }
 
@@ -233,9 +265,9 @@ export default function App() {
           ) : (
             <>
               <span>Connect Premium to start a real Spotify queue.</span>
-              <a className="secondary-button" href="/api/auth/login">
+              <button className="secondary-button" type="button" onClick={connectSpotify}>
                 Connect Spotify
-              </a>
+              </button>
             </>
           )}
         </div>
@@ -290,7 +322,7 @@ export default function App() {
           aria-label="Back to search"
           onClick={() => setCompactView("search")}
         >
-          ✕
+          X
         </button>
 
         {selectedTrack ? (
@@ -317,7 +349,15 @@ export default function App() {
                 aria-label="Previous track"
                 onClick={() => void skip("previous")}
               >
-                ⏮ Previous
+                Previous
+              </button>
+              <button
+                className="control-btn control-btn-primary"
+                type="button"
+                aria-label="Pause playback"
+                onClick={() => void pause()}
+              >
+                Pause
               </button>
               <button
                 className="control-btn"
@@ -325,7 +365,7 @@ export default function App() {
                 aria-label="Next track"
                 onClick={() => void skip("next")}
               >
-                Next ⏭
+                Next
               </button>
             </div>
 

@@ -405,6 +405,18 @@ export async function skipSpotifyTrack(
   }
 }
 
+export async function pauseSpotifyPlayback(accessToken: string): Promise<void> {
+  const response = await fetch("https://api.spotify.com/v1/me/player/pause", {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${accessToken}` },
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    throw new Error(`Spotify pause failed with status ${response.status}`);
+  }
+}
+
 export async function getSpotifyRecommendations(
   accessToken: string,
   seedTrackId: string,

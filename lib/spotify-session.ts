@@ -6,10 +6,12 @@ const REFRESH_TOKEN_COOKIE = "spotify_refresh_token";
 const EXPIRES_AT_COOKIE = "spotify_expires_at";
 export const OAUTH_STATE_COOKIE = "spotify_oauth_state";
 
+const isProduction = process.env.NODE_ENV === "production";
+
 const cookieOptions = {
   httpOnly: true,
-  sameSite: "lax" as const,
-  secure: process.env.NODE_ENV === "production",
+  sameSite: (isProduction ? "none" : "lax") as "none" | "lax",
+  secure: isProduction,
   path: "/"
 };
 

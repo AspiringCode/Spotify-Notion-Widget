@@ -451,6 +451,12 @@ h2 {
   color: #f0eae0;
 }
 
+.control-btn-primary {
+  background: rgba(181, 64, 30, 0.36);
+  border-color: rgba(232, 212, 154, 0.22);
+  color: #f0eae0;
+}
+
 /* iframe gets a class so we can override height in compact mode */
 .spotify-embed {
   border-radius: 10px;
